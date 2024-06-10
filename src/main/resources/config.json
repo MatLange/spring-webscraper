@@ -1,0 +1,20 @@
+{
+    "websites": [
+       {
+          "id": "01",
+          "baseUrl": "https://www.hays.de/",
+          "url": "https://www.hays.de/jobsuche/stellenangebote-jobs/p/1?q=Javascript&e=false&pt=false",
+          "itemTopElementName": "search__results",
+          "itemLinkElement": "third",
+          "itemTitlelementName": "third"
+       },
+       {         
+          "id": "02",
+          "baseUrl": "https://www.computerfutures.com/",
+          "url": "https://www.computerfutures.com/de-de/stellensuche/?country=Deutschland&searchRadius=50km&keywords=Javascript",
+          "itemTopElementName": "job-search__list",
+          "itemLinkElement": "second",
+          "itemTitlelementName": "third"
+       }
+    ]
+}

@@ -1,11 +1,13 @@
 package com.scraper.api.service;
 
+import com.scraper.api.model.ResponseDTO;
+import com.scraper.api.model.WebsiteDTO;
+
 import com.microsoft.playwright.Browser;
 import com.microsoft.playwright.BrowserContext;
 import com.microsoft.playwright.BrowserType;
 import com.microsoft.playwright.Page;
 import com.microsoft.playwright.Playwright;
-import com.scraper.api.model.ResponseDTO;
 import org.apache.commons.lang3.StringUtils;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
@@ -14,12 +16,18 @@ import org.jsoup.select.Elements;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
+import java.io.FileReader;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import org.json.simple.*;
+import org.json.simple.parser.JSONParser;
 
 @Service
 public class ScraperServiceImpl implements ScraperService {
@@ -31,19 +39,33 @@ public class ScraperServiceImpl implements ScraperService {
     public Set<ResponseDTO> getVehicleByModel(String vehicleModel) {
 
         Set<ResponseDTO> responseDTOS = new HashSet<>();
-
-        for (String url: urls) {
-
-            if (url.contains("computerfutures")) {
-                extractDataFromCf(responseDTOS, url);
-            }
-
-        }
-
+        JSONArray websites = readConfigJSON();
+        Iterator website = websites.iterator();
+        while (website.hasNext() && website.next() instanceof WebsiteDTO) {
+            extractDataFromWebsite(responseDTOS, "", (WebsiteDTO) website.next());
+        }   
         return responseDTOS;
     }
 
-    private void extractDataFromCf(Set<ResponseDTO> responseDTOS, String url) {
+    public String readFile(String filePath) throws IOException {
+        return new String(Files.readAllBytes(Paths.get(filePath)));
+    }    
+
+    private JSONArray readConfigJSON() {
+        JSONParser parser = new JSONParser();
+        try {
+            String jsonString = readFile("src/main/resources/config.json");
+            Object obj = parser.parse(jsonString);
+            JSONObject jsonObject = (JSONObject)obj;
+            JSONArray websites = (JSONArray)jsonObject.get("websites");
+            return websites;
+        } catch (Exception ex) {
+            ex.printStackTrace();
+        }
+        return null; // Add a return statement here
+    }
+
+    private void extractDataFromWebsite(Set<ResponseDTO> responseDTOS, String url, WebsiteDTO websiteDTO) {
         try  (Playwright playwright = Playwright.create())  {
             final BrowserType chromium = playwright.chromium();
             final Browser browser = chromium.launch();
@@ -53,7 +75,7 @@ public class ScraperServiceImpl implements ScraperService {
             context.setExtraHTTPHeaders(headers);
             final Page page = context.newPage();
             page.setExtraHTTPHeaders(headers);
-            page.navigate(url);
+            page.navigate(websiteDTO.getBaseUrl());
 /*             page.fill(searchbarCSSSelectorQuery,searchText);
             page.click(searchButtonSelectorQuery); */
             page.waitForTimeout(5000);
@@ -64,7 +86,8 @@ public class ScraperServiceImpl implements ScraperService {
             .referrer("http://www.google.com")
             .get();
  */            
-            Element element = document.getElementsByClass("job-search__list").first();
+            String elementClassName = websiteDTO.getItemTopElementName();
+            Element element = document.getElementsByClass(elementClassName).first();
             if (element == null) {
                 return;
             }
